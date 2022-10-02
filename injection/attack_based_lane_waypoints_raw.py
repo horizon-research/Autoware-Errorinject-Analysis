@@ -198,14 +198,68 @@ def bitflip(ori_num,signal,i):
 		else:
 			return za_min + 1200/32*i
 
+def parse_finalwp(filepath):
+
+	xp = []
+	yp = []
+	zp = []
+	xo = []
+	yo = []
+	zo = []
+	wo = []
+	xl = []
+	yl = []
+	zl = []
+	xa = []
+	ya = []
+	za = []
+
+	file = open(filepath,'r')
+	a = file.readlines()
+
+	for i in range(len(a)):
+		if 'x' in a[i]:
+			if 'linear:' in a[i-1]:
+				xl.append(float(a[i][17:-1]))
+			elif 'angular:' in a[i-1]:
+				xa.append(float(a[i][17:-1]))
+			elif 'position:' in a[i-1]:
+				#pdb.set_trace()
+				xp.append(float(a[i][17:-1]))
+			elif 'orientation:' in a[i-1]:
+				xo.append(float(a[i][17:-1]))
+		elif 'y' in a[i]:
+			if 'linear:' in a[i-2]:
+				yl.append(float(a[i][17:-1]))
+			elif 'angular:' in a[i-2]:
+				ya.append(float(a[i][17:-1]))
+			elif 'position:' in a[i-2]:
+				yp.append(float(a[i][17:-1]))
+			elif 'orientation:' in a[i-2]:
+				yo.append(float(a[i][17:-1]))
+		elif 'z' in a[i]:
+			if 'linear:' in a[i-3]:
+				zl.append(float(a[i][17:-1]))
+			elif 'angular:' in a[i-3]:
+				za.append(float(a[i][17:-1]))
+			elif 'position:' in a[i-3]:
+				zp.append(float(a[i][17:-1]))
+			elif 'orientation:' in a[i-3]:
+				zo.append(float(a[i][17:-1]))
+		elif 'w:' in a[i] and 'orientation:' in a[i-4]:
+			wo.append(float(a[i][17:-1]))
+
+	return xp,yp,zp,xo,yo,zo,wo,xl,yl,zl,xa,ya,za
+
+
 
 
 def main():
-	xp,yp,zp,xo,yo,zo,wo,xl,yl,zl,xa,ya,za = parse_vodometry('./baseline148/vehicle_odom.txt')
+	xp,yp,zp,xo,yo,zo,wo,xl,yl,zl,xa,ya,za = parse_finalwp('./baseline148/based_lane_waypoints_raw.txt')
 	graphs = pydot.graph_from_dot_file("rosgraph.dot")
 	graph = graphs[0]
 	ntx = networkx.drawing.nx_pydot.from_pydot(graph)
-	target = 't___vehicle__odom'
+	target = 't___based__lane_waypoints_raw'
 	terminate = 't___vehicle_cmd'
 
 	#for i in ntx.nodes():
@@ -241,7 +295,8 @@ def main():
 	#collect gt signal for xx times
 	#pid = []
 	print(signal_collect)
-	signal_attack = ['xp','yp','zp','xo','zo','wo','xl','yl','zl','xa','ya','za']
+	#pdb.set_trace()
+	signal_attack = ['xp','yp','zp','xo','zo','yo','wo','xl','yl','zl','xa','ya','za']
 	#signal_attack = ['yo','xl','yl','zl','xa','ya','za']
 	index = int(len(xp)*18/51)
 	for sig in signal_attack:
@@ -288,7 +343,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'xp',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (error_num,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (error_num,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -348,7 +403,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'yp',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,error_num,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,error_num,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -408,7 +463,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'zp',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,error_num,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,error_num,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -468,7 +523,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'xo',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,error_num,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,error_num,yoe,zoe,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -528,7 +583,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'yo',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,error_num,zoe,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,error_num,zoe,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -588,7 +643,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'zo',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,error_num,woe,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,error_num,woe,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -648,7 +703,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'wo',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,error_num,xle,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,error_num,xle,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -708,7 +763,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'xl',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,error_num,yle,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,error_num,yle,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -768,7 +823,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'yl',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,error_num,zle,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,error_num,zle,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -828,7 +883,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'zl',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,error_num,xae,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,error_num,xae,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -888,7 +943,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'xa',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,error_num,yae,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,error_num,yae,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -948,7 +1003,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'ya',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,error_num,zae)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,error_num,zae)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
@@ -1008,7 +1063,7 @@ def main():
 					pid.append(process.pid)
 				time.sleep(18)
 				error_num = bitflip(ori_num,'za',i)
-				cmd = '''rostopic pub --once /vehicle/odom nav_msgs/Odometry "{'pose':{'pose':{'position':{'x': %f, 'y': %f, 'z': %f},'orientation':{'x': %f,'y': %f, 'z': %f, 'w': %f}}},'twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x': %f,'y': %f, 'z': %f}}}}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,error_num)
+				cmd = '''rostopic pub --once /based/lane_waypoints_raw autoware_msgs/LaneArray "{'lanes':['waypoints':['twist':{'twist':{'linear':{'x': %f, 'y': %f, 'z': %f},'angular':{'x':%f,'y':%f,'z':%f}}},'pose':{'pose':{'position':{'x':%f, 'y':%f, 'z':%f},'orientation':{'x':%f,'y':%f,'z':%f,'w':%f}}}]]}"''' % (xpe,ype,zpe,xoe,yoe,zoe,woe,xle,yle,zle,xae,yae,error_num)
 				os.system(cmd)
 				time.sleep(33)
 				for t in pid:
